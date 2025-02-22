@@ -1,16 +1,30 @@
-use anchor_lang::prelude::*;
+//! Lobbyists manage funds of participants in decision markets and trade according to their targets.
+use typhoon::prelude::*;
 
-declare_id!("3JceRWanoEVZSqsY9UGtxPA4XsSAnSKDTNWp2Sp3QQLu");
+// mod errors;
+mod instructions;
+mod state;
 
-#[program]
-pub mod lobbyist {
-    use super::*;
+use instructions::*;
+use typhoon::macros::program_id;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
-    }
+program_id!("3JceRWanoEVZSqsY9UGtxPA4XsSAnSKDTNWp2Sp3QQLu");
+
+anchor_cpi!("idls/autocrat.json");
+// anchor_cpi!("idls/amm.json");
+
+handlers! {
+    initialize_lobbyist,
+    // initialize_escrow,
+    // deposit,
 }
 
-#[derive(Accounts)]
-pub struct Initialize {}
+// /// Creates a new escrow for a given lobbyist
+// pub fn initialize_escrow(ctx: Context<InitializeEscrow>) -> Result<(), ProgramError> {
+//     InitializeEscrow::handler(ctx)
+// }
+
+// /// Deposits tokens into an escrow
+// pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<(), ProgramError> {
+//     Deposit::handler(ctx, args)
+// }
