@@ -9,7 +9,9 @@ crate-type = ["cdylib", "lib"]
 name = "lobbyist"
 
 [features]
-default = ["typhoon/pinocchio"]
+default = ["typhoon/pinocchio", "typhoon-token/pinocchio"]
+custom-panic = []
+custom-heap = []
 
 [dependencies]
 typhoon = { workspace = true, features = ["borsh"] }
@@ -21,4 +23,9 @@ autocrat = { git = "https://github.com/metaDAOproject/futarchy.git", branch = "d
 ] }
 amm = { git = "https://github.com/metaDAOproject/futarchy.git", branch = "develop", features = [
     "cpi",
+] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
 ] }

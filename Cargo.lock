@@ -1582,6 +1582,15 @@ version = "0.7.1"
 source = "git+https://github.com/febo/pinocchio#e432ca6716deeb4b76e929b496d185de0fa738fa"
 
 [[package]]
+name = "pinocchio-associated-token-account"
+version = "0.1.0"
+source = "git+https://github.com/febo/pinocchio#e432ca6716deeb4b76e929b496d185de0fa738fa"
+dependencies = [
+ "pinocchio",
+ "pinocchio-pubkey",
+]
+
+[[package]]
 name = "pinocchio-log"
 version = "0.3.0"
 source = "git+https://github.com/febo/pinocchio#e432ca6716deeb4b76e929b496d185de0fa738fa"
@@ -1610,6 +1619,15 @@ dependencies = [
 
 [[package]]
 name = "pinocchio-system"
+version = "0.2.1"
+source = "git+https://github.com/febo/pinocchio#e432ca6716deeb4b76e929b496d185de0fa738fa"
+dependencies = [
+ "pinocchio",
+ "pinocchio-pubkey",
+]
+
+[[package]]
+name = "pinocchio-token"
 version = "0.2.1"
 source = "git+https://github.com/febo/pinocchio#e432ca6716deeb4b76e929b496d185de0fa738fa"
 dependencies = [
@@ -2979,6 +2997,8 @@ version = "0.1.0"
 dependencies = [
  "nostd-associated-token-account-program",
  "nostd-token-program",
+ "pinocchio-associated-token-account",
+ "pinocchio-token",
  "typhoon-accounts",
  "typhoon-program",
  "typhoon-utility",

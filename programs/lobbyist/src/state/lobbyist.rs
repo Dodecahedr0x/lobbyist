@@ -10,5 +10,5 @@ pub struct Lobbyist {
 }
 
 impl Lobbyist {
-    pub const SPACE: usize = 8 + std::mem::size_of::<Lobbyist>();
+    pub const LEN: usize = 8 + std::mem::size_of::<Lobbyist>();
 }

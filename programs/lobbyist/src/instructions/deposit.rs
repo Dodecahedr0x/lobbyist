@@ -1,90 +1,82 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token::{transfer_checked, Mint, TokenAccount, TransferChecked};
+use bytemuck::{Pod, Zeroable};
+use typhoon::prelude::*;
+use typhoon_token::{
+    spl_instructions::TransferChecked, AtaTokenProgram, Mint, TokenAccount, TokenProgram,
+};
 
-use crate::state::Escrow;
+use crate::state::{Escrow, Lobbyist};
 
-#[derive(AnchorDeserialize, AnchorSerialize)]
-pub struct DepositArgs {
-    pub token_amount: u64,
-    pub usdc_amount: u64,
-}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+#[repr(transparent)]
+pub struct PodU64(pub [u8; 8]);
 
-#[derive(Accounts)]
-pub struct Deposit<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    #[account(
-        mut,
-        seeds = [
-            "escrow:".as_bytes(),
-            escrow.lobbyist.key().as_ref(),
-            owner.key().as_ref(),
-        ],
-        bump = escrow.bump,
-    )]
-    pub escrow: Account<'info, Escrow>,
-    pub token_mint: Account<'info, Mint>,
-    pub usdc_mint: Account<'info, Mint>,
-    #[account(
-        mut,
-        token::mint = token_mint,
-        token::authority = owner.key(),
-    )]
-    pub user_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        token::mint = usdc_mint,
-        token::authority = owner.key(),
-    )]
-    pub user_usdc_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        token::mint = token_mint,
-        token::authority = escrow.key(),
-    )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        token::mint = usdc_mint,
-        token::authority = escrow.key(),
-    )]
-    pub escrow_usdc_account: Account<'info, TokenAccount>,
-    pub token_program: AccountInfo<'info>,
-    pub system_program: AccountInfo<'info>,
-}
-
-impl<'info> Deposit<'info> {
-    pub fn handler(ctx: Context<Self>, args: DepositArgs) -> Result<()> {
-        transfer_checked(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    mint: ctx.accounts.token_mint.to_account_info(),
-                    from: ctx.accounts.user_token_account.to_account_info(),
-                    to: ctx.accounts.escrow_token_account.to_account_info(),
-                    authority: ctx.accounts.owner.to_account_info(),
-                },
-            ),
-            args.token_amount,
-            ctx.accounts.token_mint.decimals,
-        )?;
-
-        transfer_checked(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    mint: ctx.accounts.usdc_mint.to_account_info(),
-                    from: ctx.accounts.user_usdc_account.to_account_info(),
-                    to: ctx.accounts.escrow_usdc_account.to_account_info(),
-                    authority: ctx.accounts.owner.to_account_info(),
-                },
-            ),
-            args.usdc_amount,
-            ctx.accounts.usdc_mint.decimals,
-        )?;
-
-        ctx.accounts.escrow.token_amount += args.token_amount;
-        ctx.accounts.escrow.usdc_amount += args.usdc_amount;
-        Ok(())
+impl PodU64 {
+    pub const fn from_primitive(n: u64) -> Self {
+        Self(n.to_le_bytes())
     }
+}
+impl From<u64> for PodU64 {
+    fn from(n: u64) -> Self {
+        Self::from_primitive(n)
+    }
+}
+impl From<PodU64> for u64 {
+    fn from(pod: PodU64) -> Self {
+        Self::from_le_bytes(pod.0)
+    }
+}
+
+#[repr(C, packed)]
+#[derive(Debug, PartialEq, Pod, Zeroable, Copy, Clone)]
+pub struct DepositArgs {
+    pub token_amount: PodU64,
+    pub usdc_amount: PodU64,
+}
+
+#[context]
+#[args(DepositArgs)]
+pub struct DepositContext {
+    pub owner: Mut<Signer>,
+    pub lobbyist: Account<Lobbyist>,
+    #[constraint(
+        seeded,
+        bump = escrow.bump,
+        has_one = lobbyist,
+    )]
+    pub escrow: Mut<Account<Escrow>>,
+    pub token_mint: Account<Mint>,
+    pub usdc_mint: Account<Mint>,
+    pub user_token_account: Mut<Account<TokenAccount>>,
+    pub user_usdc_account: Mut<Account<TokenAccount>>,
+    pub escrow_token_account: Mut<Account<TokenAccount>>,
+    pub escrow_usdc_account: Mut<Account<TokenAccount>>,
+    pub token_program: Program<TokenProgram>,
+    pub ata_token_program: Program<AtaTokenProgram>,
+}
+
+pub fn deposit(ctx: DepositContext, args: Args<DepositArgs>) -> Result<(), ProgramError> {
+    TransferChecked {
+        from: ctx.user_token_account.as_ref(),
+        mint: ctx.token_mint.as_ref(),
+        to: ctx.escrow_token_account.as_ref(),
+        authority: ctx.owner.as_ref(),
+        amount: args.token_amount.into(),
+        decimals: ctx.token_mint.data()?.decimals(),
+    }
+    .invoke()?;
+
+    TransferChecked {
+        from: ctx.user_usdc_account.as_ref(),
+        mint: ctx.token_mint.as_ref(),
+        to: ctx.escrow_usdc_account.as_ref(),
+        authority: ctx.owner.as_ref(),
+        amount: args.usdc_amount.into(),
+        decimals: ctx.usdc_mint.data()?.decimals(),
+    }
+    .invoke()?;
+
+    ctx.escrow.mut_data()?.token_amount += <PodU64 as Into<u64>>::into(args.token_amount);
+    ctx.escrow.mut_data()?.usdc_amount += <PodU64 as Into<u64>>::into(args.usdc_amount);
+
+    Ok(())
 }

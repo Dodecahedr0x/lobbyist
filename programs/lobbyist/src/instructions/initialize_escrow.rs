@@ -1,49 +1,35 @@
-use amm::state::Amm;
-use anchor_lang::prelude::*;
+use typhoon::prelude::*;
 
 use crate::state::{Escrow, Lobbyist};
 
-#[derive(Accounts)]
-pub struct InitializeEscrow<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    #[account(
-        seeds = [
-            "lobbyist:".as_bytes(),
-            lobbyist.proposal.key().as_ref()
-        ],
-        bump = lobbyist.bump,
-    )]
-    pub lobbyist: Account<'info, Lobbyist>,
-    #[account(
+#[context]
+pub struct InitializeEscrowContext {
+    pub owner: Mut<Signer>,
+    #[constraint(seeded)]
+    pub lobbyist: Account<Lobbyist>,
+    #[constraint(
         init,
         payer = owner,
-        space = 8 + std::mem::size_of::<Escrow>(),
-        seeds = [
-            "escrow:".as_bytes(),
-            lobbyist.key().as_ref(),
-            owner.key().as_ref(),
+        space = Escrow::LEN,
+        seeded,
+        keys = [
+            lobbyist.key(),
+            owner.key(),
         ],
-        bump
     )]
-    pub escrow: Account<'info, Escrow>,
-    #[account(mut)]
-    pub pass_amm: Account<'info, Amm>,
-    #[account(mut)]
-    pub fail_amm: Account<'info, Amm>,
-    pub system_program: AccountInfo<'info>,
+    pub escrow: Mut<Account<Escrow>>,
+    pub system_program: Program<System>,
 }
 
-impl<'info> InitializeEscrow<'info> {
-    pub fn handler(ctx: Context<Self>) -> Result<()> {
-        ctx.accounts.escrow.set_inner(Escrow {
-            bump: ctx.bumps.escrow,
-            lobbyist: ctx.accounts.lobbyist.key(),
-            owner: ctx.accounts.owner.key(),
-            token_amount: 0,
-            usdc_amount: 0,
-        });
+// /// Creates a new escrow for a given lobbyist
+pub fn initialize_escrow(ctx: InitializeEscrowContext) -> Result<(), ProgramError> {
+    *ctx.escrow.mut_data()? = Escrow {
+        bump: ctx.bumps.escrow as u64,
+        lobbyist: *ctx.lobbyist.key(),
+        owner: *ctx.owner.key(),
+        token_amount: 0,
+        usdc_amount: 0,
+    };
 
-        Ok(())
-    }
+    Ok(())
 }

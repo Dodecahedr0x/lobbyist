@@ -15,14 +15,9 @@ anchor_cpi!("idls/autocrat.json");
 
 handlers! {
     initialize_lobbyist,
-    // initialize_escrow,
-    // deposit,
+    initialize_escrow,
+    deposit,
 }
-
-// /// Creates a new escrow for a given lobbyist
-// pub fn initialize_escrow(ctx: Context<InitializeEscrow>) -> Result<(), ProgramError> {
-//     InitializeEscrow::handler(ctx)
-// }
 
 // /// Deposits tokens into an escrow
 // pub fn deposit(ctx: Context<Deposit>, args: DepositArgs) -> Result<(), ProgramError> {

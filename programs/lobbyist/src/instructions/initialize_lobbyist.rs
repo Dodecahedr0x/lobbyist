@@ -4,14 +4,14 @@ use typhoon_token::Mint;
 use crate::{autocrat_cpi::Dao, state::Lobbyist};
 
 #[context]
-pub struct InitializeLobbyist {
+pub struct InitializeLobbyistContext {
     pub creator: Mut<Signer>,
     #[constraint(
         init,
         payer = creator,
-        space = Lobbyist::SPACE,
+        space = Lobbyist::LEN,
         seeded,
-        keys = [&args.admin],
+        keys = [&dao.key()],
     )]
     pub lobbyist: Mut<Account<Lobbyist>>,
     pub dao: BorshAccount<Dao>,
@@ -21,7 +21,7 @@ pub struct InitializeLobbyist {
 }
 
 /// Creates a new lobbyist for a given decision market
-pub fn initialize_lobbyist(ctx: InitializeLobbyist) -> Result<(), ProgramError> {
+pub fn initialize_lobbyist(ctx: InitializeLobbyistContext) -> Result<(), ProgramError> {
     *ctx.lobbyist.mut_data()? = Lobbyist {
         bump: ctx.bumps.lobbyist,
         dao: *ctx.dao.key(),
