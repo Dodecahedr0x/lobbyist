@@ -1,14 +1,24 @@
-use typhoon::prelude::*;
+use {
+    bytemuck::{AnyBitPattern, NoUninit},
+    typhoon::prelude::*,
+};
 
-#[account]
+#[derive(NoUninit, AnyBitPattern, AccountState, Copy, Clone)]
+#[repr(C)]
+#[no_space]
 pub struct Lobbyist {
     pub bump: u8,
     #[key]
     pub dao: Pubkey,
-    pub token_mint: Pubkey,
-    pub usdc_mint: Pubkey,
+    pub proposal: Pubkey,
+    pub pass_amm: Pubkey,
+    pub fail_amm: Pubkey,
+    pub pass_base_mint: Pubkey,
+    pub pass_quote_mint: Pubkey,
+    pub fail_base_mint: Pubkey,
+    pub fail_quote_mint: Pubkey,
 }
 
 impl Lobbyist {
-    pub const LEN: usize = 8 + std::mem::size_of::<Lobbyist>();
+    pub const LEN: usize = 8 + core::mem::size_of::<Lobbyist>();
 }

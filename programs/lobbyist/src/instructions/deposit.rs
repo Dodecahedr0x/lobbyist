@@ -1,36 +1,17 @@
-use bytemuck::{Pod, Zeroable};
-use typhoon::prelude::*;
-use typhoon_token::{
-    spl_instructions::TransferChecked, AtaTokenProgram, Mint, TokenAccount, TokenProgram,
+use {
+    crate::state::{Escrow, Lobbyist},
+    bytemuck::{AnyBitPattern, NoUninit},
+    typhoon::prelude::*,
+    typhoon_token::{
+        spl_instructions::TransferChecked, AtaTokenProgram, Mint, TokenAccount, TokenProgram,
+    },
 };
 
-use crate::state::{Escrow, Lobbyist};
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
-#[repr(transparent)]
-pub struct PodU64(pub [u8; 8]);
-
-impl PodU64 {
-    pub const fn from_primitive(n: u64) -> Self {
-        Self(n.to_le_bytes())
-    }
-}
-impl From<u64> for PodU64 {
-    fn from(n: u64) -> Self {
-        Self::from_primitive(n)
-    }
-}
-impl From<PodU64> for u64 {
-    fn from(pod: PodU64) -> Self {
-        Self::from_le_bytes(pod.0)
-    }
-}
-
-#[repr(C, packed)]
-#[derive(Debug, PartialEq, Pod, Zeroable, Copy, Clone)]
+#[repr(C)]
+#[derive(Debug, PartialEq, AnyBitPattern, NoUninit, Copy, Clone)]
 pub struct DepositArgs {
-    pub token_amount: PodU64,
-    pub usdc_amount: PodU64,
+    pub token_amount: u64,
+    pub usdc_amount: u64,
 }
 
 #[context]
@@ -40,7 +21,7 @@ pub struct DepositContext {
     pub lobbyist: Account<Lobbyist>,
     #[constraint(
         seeded,
-        bump = escrow.bump,
+        bump = escrow.data()?.bump as u8,
         has_one = lobbyist,
     )]
     pub escrow: Mut<Account<Escrow>>,
@@ -54,13 +35,13 @@ pub struct DepositContext {
     pub ata_token_program: Program<AtaTokenProgram>,
 }
 
-pub fn deposit(ctx: DepositContext, args: Args<DepositArgs>) -> Result<(), ProgramError> {
+pub fn deposit(ctx: DepositContext) -> ProgramResult {
     TransferChecked {
         from: ctx.user_token_account.as_ref(),
         mint: ctx.token_mint.as_ref(),
         to: ctx.escrow_token_account.as_ref(),
         authority: ctx.owner.as_ref(),
-        amount: args.token_amount.into(),
+        amount: ctx.args.token_amount.into(),
         decimals: ctx.token_mint.data()?.decimals(),
     }
     .invoke()?;
@@ -70,13 +51,13 @@ pub fn deposit(ctx: DepositContext, args: Args<DepositArgs>) -> Result<(), Progr
         mint: ctx.token_mint.as_ref(),
         to: ctx.escrow_usdc_account.as_ref(),
         authority: ctx.owner.as_ref(),
-        amount: args.usdc_amount.into(),
+        amount: ctx.args.usdc_amount.into(),
         decimals: ctx.usdc_mint.data()?.decimals(),
     }
     .invoke()?;
 
-    ctx.escrow.mut_data()?.token_amount += <PodU64 as Into<u64>>::into(args.token_amount);
-    ctx.escrow.mut_data()?.usdc_amount += <PodU64 as Into<u64>>::into(args.usdc_amount);
+    ctx.escrow.mut_data()?.token_amount += ctx.args.token_amount;
+    ctx.escrow.mut_data()?.usdc_amount += ctx.args.usdc_amount;
 
     Ok(())
 }

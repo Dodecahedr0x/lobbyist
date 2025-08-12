@@ -1,6 +1,9 @@
+use bytemuck::{AnyBitPattern, NoUninit};
 use typhoon::prelude::*;
 
-#[account]
+#[derive(NoUninit, AnyBitPattern, AccountState, Copy, Clone)]
+#[repr(C)]
+#[no_space]
 pub struct Escrow {
     pub bump: u64,
     #[key]
@@ -12,5 +15,5 @@ pub struct Escrow {
 }
 
 impl Escrow {
-    pub const LEN: usize = 8 + std::mem::size_of::<Escrow>();
+    pub const LEN: usize = 8 + core::mem::size_of::<Escrow>();
 }
