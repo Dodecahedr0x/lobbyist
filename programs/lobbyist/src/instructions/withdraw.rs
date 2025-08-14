@@ -12,19 +12,15 @@ use {
 
 #[derive(Debug, PartialEq, AnyBitPattern, NoUninit, Copy, Clone)]
 #[repr(C)]
-pub struct DepositArgs {
+pub struct WithdrawArgs {
     pub base_amount: PodU64,
     pub quote_amount: PodU64,
 }
 
 #[context]
-#[args(DepositArgs)]
-pub struct DepositContext {
+#[args(WithdrawArgs)]
+pub struct WithdrawContext {
     pub depositor: Mut<Signer>,
-    #[constraint(
-        has_one = base_mint,
-        has_one = quote_mint,
-    )]
     pub lobbyist: Account<Lobbyist>,
     #[constraint(
         seeded,
@@ -43,31 +39,39 @@ pub struct DepositContext {
     pub system_program: Program<System>,
 }
 
-pub fn deposit(ctx: DepositContext) -> ProgramResult {
-    msg!("Deposit");
+pub fn withdraw(ctx: WithdrawContext) -> ProgramResult {
+    msg!("Withdraw");
+
+    let bump = [ctx.escrow.data()?.bump as u8];
+    let seeds = Escrow::derive_with_bump(
+        ctx.lobbyist.as_ref().key(),
+        ctx.depositor.as_ref().key(),
+        &bump,
+    );
 
     TransferChecked {
-        from: ctx.user_base_ata.as_ref(),
+        from: ctx.escrow_base_ata.as_ref(),
         mint: ctx.base_mint.as_ref(),
-        to: ctx.escrow_base_ata.as_ref(),
-        authority: ctx.depositor.as_ref(),
+        to: ctx.user_base_ata.as_ref(),
+        authority: ctx.escrow.as_ref(),
         amount: ctx.args.base_amount.into(),
         decimals: ctx.base_mint.data()?.decimals(),
     }
-    .invoke()?;
+    .invoke_signed(&[instruction::CpiSigner::from(&seeds)])?;
 
     TransferChecked {
-        from: ctx.user_quote_ata.as_ref(),
+        from: ctx.escrow_quote_ata.as_ref(),
         mint: ctx.quote_mint.as_ref(),
-        to: ctx.escrow_quote_ata.as_ref(),
-        authority: ctx.depositor.as_ref(),
+        to: ctx.user_quote_ata.as_ref(),
+        authority: ctx.escrow.as_ref(),
         amount: ctx.args.quote_amount.into(),
         decimals: ctx.quote_mint.data()?.decimals(),
     }
-    .invoke()?;
+    .invoke_signed(&[instruction::CpiSigner::from(&seeds)])?;
 
-    ctx.escrow.mut_data()?.base_amount += ctx.args.base_amount;
-    ctx.escrow.mut_data()?.quote_amount += ctx.args.quote_amount;
+    let mut escrow = ctx.escrow.mut_data()?;
+    escrow.base_amount -= ctx.args.base_amount;
+    escrow.quote_amount -= ctx.args.quote_amount;
 
     Ok(())
 }

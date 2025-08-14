@@ -16,8 +16,10 @@ custom-heap = []
 
 
 [dependencies]
-typhoon = { version = "0.1.0-alpha.14", features = ["borsh"] }
-typhoon-token = "0.1.0-alpha.14"
+typhoon = { path = "../../../typhoon/crates/lib", features = ["borsh"] }
+typhoon-token = { path = "../../../typhoon/crates/token" }
+# typhoon = { version = "0.1.0-alpha.14", features = ["borsh"] }
+# typhoon-token = "0.1.0-alpha.14"
 bytemuck = { version = "1.21.0", features = ["derive"] }
 # pyth-solana-receiver-sdk = "0.5.0"
 borsh = { version = "1.5", features = ["derive"], default-features = false }
@@ -42,7 +44,7 @@ solana-signer = "2.2.1"
 solana-transaction = "2.2.1"
 spl-associated-token-account = "7.0.0"
 spl-token = "8.0.0"
-typhoon-instruction-builder = "0.1.0-alpha.14"
+typhoon-instruction-builder = { path = "../../../typhoon/crates/instruction-builder" }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

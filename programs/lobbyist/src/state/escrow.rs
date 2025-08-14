@@ -1,5 +1,7 @@
-use bytemuck::{AnyBitPattern, NoUninit};
-use typhoon::prelude::*;
+use {
+    bytemuck::{AnyBitPattern, NoUninit},
+    typhoon::prelude::*,
+};
 
 #[derive(NoUninit, AnyBitPattern, AccountState, Copy, Clone)]
 #[repr(C)]
@@ -9,9 +11,13 @@ pub struct Escrow {
     #[key]
     pub lobbyist: Pubkey,
     #[key]
-    pub owner: Pubkey,
-    pub token_amount: u64,
-    pub usdc_amount: u64,
+    pub depositor: Pubkey,
+    pub base_amount: u64,
+    pub quote_amount: u64,
+    pub pass_base_amount: u64,
+    pub pass_quote_amount: u64,
+    pub fail_base_amount: u64,
+    pub fail_quote_amount: u64,
 }
 
 impl Escrow {

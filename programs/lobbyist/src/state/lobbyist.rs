@@ -13,10 +13,8 @@ pub struct Lobbyist {
     pub proposal: Pubkey,
     pub pass_amm: Pubkey,
     pub fail_amm: Pubkey,
-    pub pass_base_mint: Pubkey,
-    pub pass_quote_mint: Pubkey,
-    pub fail_base_mint: Pubkey,
-    pub fail_quote_mint: Pubkey,
+    pub base_mint: Pubkey,
+    pub quote_mint: Pubkey,
 }
 
 impl Lobbyist {
