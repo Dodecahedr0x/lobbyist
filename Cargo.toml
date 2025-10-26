@@ -10,3 +10,28 @@ codegen-units = 1
 opt-level = 3
 incremental = false
 codegen-units = 1
+
+[workspace.dependencies]
+typhoon = { path = "../typhoon/crates/lib", features = ["borsh"] }
+typhoon-errors = { path = "../typhoon/crates/errors" }
+typhoon-instruction-builder = { path = "../typhoon/crates/instruction-builder" }
+typhoon-token = { path = "../typhoon/crates/token" }
+# typhoon = { version = "0.1.0-alpha.16", features = ["borsh"] }
+# typhoon-token = "0.1.0-alpha.16"
+bytemuck = { version = "1.21.0", features = ["derive"] }
+borsh = { version = "1.5", features = ["derive"], default-features = false }
+pyth-min = "=0.1.2"
+base64 = "0.22.1"
+lazy_static = "1.5.0"
+litesvm = "0.6.1"
+solana-account = "2.2.1"
+solana-instruction = { version = "2.2.1", features = ["borsh"] }
+solana-keypair = "2.2.1"
+solana-native-token = "3.0.0"
+solana-program = "2.2.1"
+solana-pubkey = { version = "2.2.1", features = ["borsh"] }
+solana-sdk-ids = "2.2.1"
+solana-signer = "2.2.1"
+solana-transaction = "2.2.1"
+spl-associated-token-account = "7.0.0"
+spl-token = "8.0.0"

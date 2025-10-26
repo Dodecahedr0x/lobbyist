@@ -1,7 +1,7 @@
 use {
     crate::{
         state::{Escrow, Lobbyist},
-        utils::PodU64,
+        PodU64,
     },
     bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
@@ -19,7 +19,7 @@ pub struct WithdrawArgs {
 
 #[context]
 #[args(WithdrawArgs)]
-pub struct WithdrawContext {
+pub struct Withdraw {
     pub depositor: Mut<Signer>,
     pub lobbyist: Account<Lobbyist>,
     #[constraint(
@@ -39,11 +39,11 @@ pub struct WithdrawContext {
     pub system_program: Program<System>,
 }
 
-pub fn withdraw(ctx: WithdrawContext) -> ProgramResult {
+pub fn withdraw(ctx: Withdraw) -> ProgramResult {
     msg!("Withdraw");
 
     let bump = [ctx.escrow.data()?.bump as u8];
-    let seeds = Escrow::derive_with_bump(
+    let seeds = Escrow::derive_signer_seeds_with_bump(
         ctx.lobbyist.as_ref().key(),
         ctx.depositor.as_ref().key(),
         &bump,

@@ -19,7 +19,7 @@ pub struct DepositArgs {
 
 #[context]
 #[args(DepositArgs)]
-pub struct DepositContext {
+pub struct Deposit {
     pub depositor: Mut<Signer>,
     #[constraint(
         has_one = base_mint,
@@ -43,7 +43,7 @@ pub struct DepositContext {
     pub system_program: Program<System>,
 }
 
-pub fn deposit(ctx: DepositContext) -> ProgramResult {
+pub fn deposit(ctx: Deposit) -> ProgramResult {
     msg!("Deposit");
 
     TransferChecked {

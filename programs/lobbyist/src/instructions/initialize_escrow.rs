@@ -1,14 +1,29 @@
 use {
-    crate::state::{Escrow, Lobbyist},
+    crate::{
+        state::{Escrow, Lobbyist},
+        PodI16,
+    },
+    bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
     typhoon_token::{ata_instructions::CreateIdempotent, AtaTokenProgram, Mint, TokenProgram},
 };
 
+#[derive(Debug, PartialEq, AnyBitPattern, NoUninit, Copy, Clone)]
+#[repr(C)]
+pub struct InitializeEscrowArgs {
+    pub pyth_feed_id: [u8; 32],
+    pub bullish_threshold_bps: PodI16,
+    pub bearish_threshold_bps: PodI16,
+    pub bullish: u8,
+}
+
 #[context]
-pub struct InitializeEscrowContext {
+#[args(InitializeEscrowArgs)]
+pub struct InitializeEscrow {
     pub depositor: Mut<Signer>,
     #[constraint(
         seeded,
+        bump = lobbyist.data_unchecked()?.bump,
         has_one = base_mint,
         has_one = quote_mint,
     )]
@@ -34,7 +49,7 @@ pub struct InitializeEscrowContext {
 }
 
 /// Creates a new escrow for a given lobbyist
-pub fn initialize_escrow(ctx: InitializeEscrowContext) -> ProgramResult {
+pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
     msg!("Initialize escrow");
 
     CreateIdempotent {
@@ -61,12 +76,18 @@ pub fn initialize_escrow(ctx: InitializeEscrowContext) -> ProgramResult {
         bump: ctx.bumps.escrow as u64,
         lobbyist: *ctx.lobbyist.key(),
         depositor: *ctx.depositor.key(),
+        active: false.into(),
+        bullish: ctx.args.bullish,
         base_amount: 0,
         quote_amount: 0,
         pass_base_amount: 0,
         pass_quote_amount: 0,
         fail_base_amount: 0,
         fail_quote_amount: 0,
+        pyth_feed_id: ctx.args.pyth_feed_id,
+        bullish_threshold_bps: 0,
+        bearish_threshold_bps: 0,
+        _reserved: [0; 10],
     };
 
     Ok(())

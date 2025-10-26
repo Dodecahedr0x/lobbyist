@@ -5,7 +5,7 @@ use {
 };
 
 #[context]
-pub struct InitializeLobbyistContext {
+pub struct InitializeLobbyist {
     pub creator: Mut<Signer>,
     #[constraint(
         init,
@@ -34,7 +34,7 @@ pub struct InitializeLobbyistContext {
 }
 
 /// Creates a new lobbyist for a given decision market
-pub fn initialize_lobbyist(ctx: InitializeLobbyistContext) -> ProgramResult {
+pub fn initialize_lobbyist(ctx: InitializeLobbyist) -> ProgramResult {
     msg!("Initialize lobbyist");
 
     // Check mints

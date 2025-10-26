@@ -31,17 +31,20 @@ fn integration_test() {
     .0;
 
     let lobbyist_ix = InitializeLobbyistInstruction {
-        creator: ctx.signer.pubkey(),
-        lobbyist: lobbyist_pda,
-        dao: ctx.dao,
-        proposal: ctx.proposal,
-        fail_amm: ctx.fail_amm,
-        pass_amm: ctx.pass_amm,
-        base_mint: ctx.base_mint,
-        quote_mint: ctx.quote_mint,
-        system_program: system_program::id(),
+        ctx: InitializeLobbyistContext {
+            creator: ctx.signer.pubkey(),
+            lobbyist: lobbyist_pda,
+            dao: ctx.dao,
+            proposal: ctx.proposal,
+            fail_amm: ctx.fail_amm,
+            pass_amm: ctx.pass_amm,
+            base_mint: ctx.base_mint,
+            quote_mint: ctx.quote_mint,
+            system_program: system_program::id(),
+        },
     }
     .into_instruction();
+    eprintln!("{:?}", lobbyist_ix.data);
 
     let tx = Transaction::new_signed_with_payer(
         &[lobbyist_ix],
@@ -49,34 +52,41 @@ fn integration_test() {
         &[&ctx.signer],
         ctx.svm.latest_blockhash(),
     );
-    let result = ctx.svm.send_transaction(tx).unwrap();
-    eprintln!("result: {:?}", result);
+    assert_tx!(ctx.svm.send_transaction(tx));
+    eprintln!("Lobbyist initialized");
 
     let escrow_base_ata = get_associated_token_address(&escrow_pda, &ctx.base_mint);
     let escrow_quote_ata = get_associated_token_address(&escrow_pda, &ctx.quote_mint);
     let escrow_ix = InitializeEscrowInstruction {
-        depositor: ctx.signer.pubkey(),
-        lobbyist: lobbyist_pda,
-        escrow: escrow_pda,
-        base_mint: ctx.base_mint,
-        quote_mint: ctx.quote_mint,
-        escrow_base_ata,
-        escrow_quote_ata,
-        token_program: spl_token::ID.into(),
-        ata_token_program: spl_associated_token_account::ID.into(),
-        system_program: system_program::id(),
+        ctx: InitializeEscrowContext {
+            depositor: ctx.signer.pubkey(),
+            lobbyist: lobbyist_pda,
+            escrow: escrow_pda,
+            base_mint: ctx.base_mint,
+            quote_mint: ctx.quote_mint,
+            escrow_base_ata,
+            escrow_quote_ata,
+            token_program: spl_token::ID.into(),
+            ata_token_program: spl_associated_token_account::ID.into(),
+            system_program: system_program::id(),
+            args: InitializeEscrowArgs {
+                pyth_feed_id: ctx.price_feed_id,
+                bullish_threshold_bps: 10000.into(),
+                bearish_threshold_bps: 10000.into(),
+                bullish: true.into(),
+            },
+        },
     }
     .into_instruction();
 
-    eprintln!("escrow_ix: {:?}", escrow_ix.accounts);
     let tx = Transaction::new_signed_with_payer(
         &[escrow_ix],
         Some(&ctx.signer.pubkey()),
         &[&ctx.signer],
         ctx.svm.latest_blockhash(),
     );
-    let result = ctx.svm.send_transaction(tx).unwrap();
-    eprintln!("result: {:?}", result);
+    assert_tx!(ctx.svm.send_transaction(tx));
+    eprintln!("Escrow initialized");
 
     let tx = Transaction::new_signed_with_payer(
         &[
@@ -97,26 +107,28 @@ fn integration_test() {
         &[&ctx.signer],
         ctx.svm.latest_blockhash(),
     );
-    ctx.svm.send_transaction(tx).unwrap();
+    assert_tx!(ctx.svm.send_transaction(tx));
 
     let user_base_ata = get_associated_token_address(&ctx.signer.pubkey(), &ctx.base_mint);
     let user_quote_ata = get_associated_token_address(&ctx.signer.pubkey(), &ctx.quote_mint);
     let deposit_ix = DepositInstruction {
-        depositor: ctx.signer.pubkey(),
-        lobbyist: lobbyist_pda,
-        escrow: escrow_pda,
-        base_mint: ctx.base_mint,
-        quote_mint: ctx.quote_mint,
-        user_base_ata,
-        user_quote_ata,
-        escrow_base_ata,
-        escrow_quote_ata,
-        token_program: spl_token::ID.into(),
-        ata_token_program: spl_associated_token_account::ID.into(),
-        system_program: system_program::id(),
-        arg_0: DepositArgs {
-            base_amount: (initial_supply / 2).into(),
-            quote_amount: (initial_supply / 2).into(),
+        ctx: DepositContext {
+            depositor: ctx.signer.pubkey(),
+            lobbyist: lobbyist_pda,
+            escrow: escrow_pda,
+            base_mint: ctx.base_mint,
+            quote_mint: ctx.quote_mint,
+            user_base_ata,
+            user_quote_ata,
+            escrow_base_ata,
+            escrow_quote_ata,
+            token_program: spl_token::ID.into(),
+            ata_token_program: spl_associated_token_account::ID.into(),
+            system_program: system_program::id(),
+            args: DepositArgs {
+                base_amount: (initial_supply / 2).into(),
+                quote_amount: (initial_supply / 2).into(),
+            },
         },
     }
     .into_instruction();
@@ -127,8 +139,8 @@ fn integration_test() {
         &[&ctx.signer],
         ctx.svm.latest_blockhash(),
     );
-    let result = ctx.svm.send_transaction(tx).unwrap();
-    eprintln!("result: {:?}", result);
+    assert_tx!(ctx.svm.send_transaction(tx));
+    eprintln!("Deposited");
 
     let escrow_account = ctx.svm.get_account(&escrow_pda).unwrap();
     let escrow = Escrow::read(&escrow_account.data).unwrap();
@@ -136,21 +148,23 @@ fn integration_test() {
     assert_eq!(escrow.quote_amount, initial_supply / 2);
 
     let withdraw_ix = WithdrawInstruction {
-        depositor: ctx.signer.pubkey(),
-        lobbyist: lobbyist_pda,
-        escrow: escrow_pda,
-        base_mint: ctx.base_mint,
-        quote_mint: ctx.quote_mint,
-        user_base_ata,
-        user_quote_ata,
-        escrow_base_ata,
-        escrow_quote_ata,
-        token_program: spl_token::ID.into(),
-        ata_token_program: spl_associated_token_account::ID.into(),
-        system_program: system_program::id(),
-        arg_0: WithdrawArgs {
-            base_amount: (initial_supply / 4).into(),
-            quote_amount: (initial_supply / 4).into(),
+        ctx: WithdrawContext {
+            depositor: ctx.signer.pubkey(),
+            lobbyist: lobbyist_pda,
+            escrow: escrow_pda,
+            base_mint: ctx.base_mint,
+            quote_mint: ctx.quote_mint,
+            user_base_ata,
+            user_quote_ata,
+            escrow_base_ata,
+            escrow_quote_ata,
+            token_program: spl_token::ID.into(),
+            ata_token_program: spl_associated_token_account::ID.into(),
+            system_program: system_program::id(),
+            args: WithdrawArgs {
+                base_amount: (initial_supply / 4).into(),
+                quote_amount: (initial_supply / 4).into(),
+            },
         },
     }
     .into_instruction();
@@ -161,11 +175,38 @@ fn integration_test() {
         &[&ctx.signer],
         ctx.svm.latest_blockhash(),
     );
-    let result = ctx.svm.send_transaction(tx).unwrap();
-    eprintln!("result: {:?}", result);
+    assert_tx!(ctx.svm.send_transaction(tx));
+    eprintln!("Withdrew");
 
     let escrow_account = ctx.svm.get_account(&escrow_pda).unwrap();
     let escrow = Escrow::read(&escrow_account.data).unwrap();
     assert_eq!(escrow.base_amount, initial_supply / 4);
     assert_eq!(escrow.quote_amount, initial_supply / 4);
+
+    let trade_ix = TradeInstruction {
+        ctx: TradeContext {
+            depositor: ctx.signer.pubkey(),
+            lobbyist: lobbyist_pda,
+            escrow: escrow_pda,
+            base_mint: ctx.base_mint,
+            quote_mint: ctx.quote_mint,
+            escrow_base_ata,
+            escrow_quote_ata,
+            token_program: spl_token::ID.into(),
+            ata_token_program: spl_associated_token_account::ID.into(),
+            system_program: system_program::id(),
+            pyth_price: ctx.price_account,
+        },
+    }
+    .into_instruction();
+
+    let tx = Transaction::new_signed_with_payer(
+        &[trade_ix],
+        Some(&ctx.signer.pubkey()),
+        &[&ctx.signer],
+        ctx.svm.latest_blockhash(),
+    );
+    assert_tx!(ctx.svm.send_transaction(tx));
+    eprintln!("Trade executed");
+    panic!();
 }

@@ -1,7 +1,13 @@
-use anchor_lang::prelude::*;
+use {
+    typhoon::{
+        macros::TyphoonError,
+        prelude::{ProgramError, ToStr},
+    },
+    typhoon_errors::Error,
+};
 
-#[error_code]
+#[derive(TyphoonError)]
 pub enum LobbyistError {
-    #[msg("Proposal is not pending")]
-    InvalidProposalState,
+    #[msg("Error: Failed to get pyth price")]
+    GetPythPrice = 200,
 }

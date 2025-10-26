@@ -7,13 +7,15 @@ use {
         squads::{SQUADS_PROGRAM_CONFIG, SQUADS_PROGRAM_ID},
         AMM_PROGRAM_ID, CONDITIONAL_VAULT_PROGRAM_ID,
     },
+    base64::{prelude::BASE64_STANDARD, Engine},
     lazy_static::lazy_static,
     litesvm::LiteSVM,
     lobbyist::amm_cpi::AddLiquidityArgs,
+    pyth_min::byte_utils::hex_to_bytes,
     solana_account::{Account, WritableAccount},
     solana_keypair::Keypair,
     solana_native_token::LAMPORTS_PER_SOL,
-    solana_pubkey::Pubkey,
+    solana_pubkey::{pubkey, Pubkey},
     solana_signer::Signer,
     std::{fs, path::PathBuf},
 };
@@ -45,6 +47,8 @@ pub struct TestContext {
     pub pass_base_mint: Pubkey,
     pub pass_quote_mint: Pubkey,
     pub dao: Pubkey,
+    pub price_account: Pubkey,
+    pub price_feed_id: [u8; 32],
 }
 
 impl TestContext {
@@ -75,6 +79,24 @@ impl TestContext {
         .unwrap();
         svm.add_program_from_file(AMM_PROGRAM_ID, manifest_dir.join("tests/fixtures/amm.so"))
             .unwrap();
+
+        let price_account = pubkey!("7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE");
+        let price_feed_id =
+            hex_to_bytes("ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d")
+                .try_into()
+                .unwrap();
+        let pyth_price_data = BASE64_STANDARD.decode("IvEjY51+9M1gMUcENA3t3zcf1CRyFI8kjp0abRpesqw6zYt/1dayQwHvDYtv2izrpB2hXUCV0do5Kg0vjtDGx7wPTPrIwoC1baNqsW0EAAAAe0o5AQAAAAD4////kkOfaAAAAACSQ59oAAAAAGwglXoEAAAAZ93aAAAAAAD+w3gVAAAAAAA=").unwrap();
+        svm.set_account(
+            price_account,
+            Account {
+                lamports: 1825020,
+                data: pyth_price_data,
+                owner: pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ"),
+                executable: false,
+                rent_epoch: 18446744073709551615,
+            },
+        )
+        .unwrap();
 
         let squads_program_config_account = Account::create(
             LAMPORTS_PER_SOL,
@@ -184,6 +206,8 @@ impl TestContext {
             fail_quote_mint: fail_usdc_mint,
             pass_base_mint: pass_token_mint,
             pass_quote_mint: pass_usdc_mint,
+            price_account,
+            price_feed_id,
         }
     }
 }

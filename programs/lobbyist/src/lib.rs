@@ -1,12 +1,13 @@
 //! Lobbyists manage funds of participants in decision markets and trade according to their targets.
 use typhoon::prelude::*;
 
-// mod errors;
+mod errors;
 mod instructions;
 mod state;
 mod utils;
 
 use typhoon::macros::program_id;
+
 pub use {instructions::*, state::*, utils::*};
 
 program_id!("3JceRWanoEVZSqsY9UGtxPA4XsSAnSKDTNWp2Sp3QQLu");
@@ -20,4 +21,5 @@ handlers! {
     initialize_escrow,
     deposit,
     withdraw,
+    trade,
 }
