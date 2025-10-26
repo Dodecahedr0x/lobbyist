@@ -44,7 +44,6 @@ fn integration_test() {
         },
     }
     .into_instruction();
-    eprintln!("{:?}", lobbyist_ix.data);
 
     let tx = Transaction::new_signed_with_payer(
         &[lobbyist_ix],

@@ -10,7 +10,7 @@ pub struct InitializeLobbyist {
     #[constraint(
         init,
         payer = creator,
-        space = Lobbyist::LEN,
+        space = Lobbyist::SPACE,
         seeded = [&dao.key()],
         bump
     )]

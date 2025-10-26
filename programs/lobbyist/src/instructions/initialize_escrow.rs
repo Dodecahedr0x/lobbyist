@@ -31,7 +31,7 @@ pub struct InitializeEscrow {
     #[constraint(
         init,
         payer = depositor,
-        space = Escrow::LEN,
+        space = Escrow::SPACE,
         seeded = [
             lobbyist.key(),
             depositor.key(),
@@ -73,7 +73,7 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
     .invoke()?;
 
     *ctx.escrow.mut_data()? = Escrow {
-        bump: ctx.bumps.escrow as u64,
+        bump: ctx.bumps.escrow,
         lobbyist: *ctx.lobbyist.key(),
         depositor: *ctx.depositor.key(),
         active: false.into(),
@@ -87,7 +87,7 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
         pyth_feed_id: ctx.args.pyth_feed_id,
         bullish_threshold_bps: 0,
         bearish_threshold_bps: 0,
-        _reserved: [0; 10],
+        _reserved: [0; 9],
     };
 
     Ok(())

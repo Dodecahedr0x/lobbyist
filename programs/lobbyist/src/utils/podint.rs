@@ -25,6 +25,50 @@ macro_rules! impl_podint {
             }
         }
 
+        impl std::ops::Add for $name {
+            type Output = $name;
+            fn add(self, rhs: $name) -> $name {
+                Self::from(
+                    <$replacement>::from_le_bytes(self.0)
+                        + <$name as Into<$replacement>>::into(rhs),
+                )
+            }
+        }
+
+        impl std::ops::Sub for $name {
+            type Output = $name;
+            fn sub(self, rhs: $name) -> $name {
+                Self::from(
+                    <$replacement>::from_le_bytes(self.0)
+                        - <$name as Into<$replacement>>::into(rhs),
+                )
+            }
+        }
+
+        impl std::ops::AddAssign<$name> for $name {
+            fn add_assign(&mut self, rhs: $name) {
+                *self = *self + rhs;
+            }
+        }
+
+        impl std::ops::SubAssign<$name> for $name {
+            fn sub_assign(&mut self, rhs: $name) {
+                *self = *self - rhs;
+            }
+        }
+
+        impl std::ops::AddAssign<$replacement> for $name {
+            fn add_assign(&mut self, rhs: $replacement) {
+                *self = *self + <$replacement as Into<$name>>::into(rhs);
+            }
+        }
+
+        impl std::ops::SubAssign<$replacement> for $name {
+            fn sub_assign(&mut self, rhs: $replacement) {
+                *self = *self - rhs.into();
+            }
+        }
+
         impl std::ops::AddAssign<$name> for $replacement {
             fn add_assign(&mut self, rhs: $name) {
                 *self = *self + <$name as Into<$replacement>>::into(rhs);
