@@ -2,9 +2,13 @@
 macro_rules! assert_tx {
     ($tx_result:expr) => {
         match $tx_result {
-            Ok(_) => {}
+            Ok(res) => res,
             Err(e) => {
-                eprintln!("Logs:\n{}", e.meta.logs.join("\n"));
+                if !e.meta.logs.is_empty() {
+                    eprintln!("Logs:\n{}", e.meta.logs.join("\n"));
+                } else {
+                    eprintln!("Error: {:?}", e);
+                }
                 panic!("Transaction failed")
             }
         }

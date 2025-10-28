@@ -5,9 +5,7 @@ use {
     },
     bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
-    typhoon_token::{
-        spl_instructions::TransferChecked, AtaTokenProgram, Mint, TokenAccount, TokenProgram,
-    },
+    typhoon_token::{spl_instructions::TransferChecked, Mint, TokenAccount, TokenProgram},
 };
 
 #[derive(Debug, PartialEq, AnyBitPattern, NoUninit, Copy, Clone)]
@@ -39,7 +37,6 @@ pub struct Deposit {
     pub escrow_base_ata: Mut<Account<TokenAccount>>,
     pub escrow_quote_ata: Mut<Account<TokenAccount>>,
     pub token_program: Program<TokenProgram>,
-    pub ata_token_program: Program<AtaTokenProgram>,
     pub system_program: Program<System>,
 }
 

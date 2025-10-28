@@ -3,17 +3,18 @@ use {
     typhoon::prelude::*,
 };
 
-#[derive(Default, Copy, Clone, NoUninit, AnyBitPattern)]
-#[repr(C)]
-pub struct EscrowStatusId(u64);
+// #[derive(Default, Copy, Clone, NoUninit, AnyBitPattern)]
+// #[repr(C)]
+// pub struct EscrowStatusId(u64);
 
-impl From<EscrowStatus> for EscrowStatusId {
-    fn from(status: EscrowStatus) -> Self {
-        Self(status as u64)
-    }
-}
+// impl From<EscrowStatus> for EscrowStatusId {
+//     fn from(status: EscrowStatus) -> Self {
+//         Self(status as u64)
+//     }
+// }
 
 #[derive(Default, Copy, Clone)]
+#[repr(u8)]
 pub enum EscrowStatus {
     #[default]
     Paused,
@@ -27,11 +28,12 @@ pub struct Escrow {
     /// The lobbyist than can use this escrow
     #[key]
     pub lobbyist: Pubkey,
+    /// The proposal the escrow is associated with
+    #[key]
+    pub proposal: Pubkey,
     /// The owner of the escrow
     #[key]
     pub depositor: Pubkey,
-    /// The price feed used to trade
-    pub pyth_feed_id: [u8; 32],
     /// Amount of base token owned by the escrow
     pub base_amount: u64,
     /// Amount of quote token owned by the escrow

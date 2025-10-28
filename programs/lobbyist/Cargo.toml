@@ -16,7 +16,7 @@ custom-heap = []
 
 
 [dependencies]
-typhoon = { workspace = true, features = ["borsh"] }
+typhoon = { workspace = true, features = ["borsh", "std"] }
 typhoon-token = { workspace = true }
 typhoon-errors = { workspace = true }
 # typhoon = { version = "0.1.0-alpha.14", features = ["borsh"] }

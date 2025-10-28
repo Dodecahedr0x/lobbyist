@@ -8,7 +8,16 @@
   "instructions": [
     {
       "name": "initialize_question",
-      "discriminator": [245, 151, 106, 188, 88, 44, 65, 212],
+      "discriminator": [
+        245,
+        151,
+        106,
+        188,
+        88,
+        44,
+        65,
+        212
+      ],
       "accounts": [
         {
           "name": "question",
@@ -42,7 +51,16 @@
     },
     {
       "name": "resolve_question",
-      "discriminator": [52, 32, 224, 179, 180, 8, 0, 246],
+      "discriminator": [
+        52,
+        32,
+        224,
+        179,
+        180,
+        8,
+        0,
+        246
+      ],
       "accounts": [
         {
           "name": "question",
@@ -72,7 +90,16 @@
     },
     {
       "name": "initialize_conditional_vault",
-      "discriminator": [37, 88, 250, 212, 54, 218, 227, 175],
+      "discriminator": [
+        37,
+        88,
+        250,
+        212,
+        54,
+        218,
+        227,
+        175
+      ],
       "accounts": [
         {
           "name": "vault",
@@ -112,7 +139,16 @@
     },
     {
       "name": "split_tokens",
-      "discriminator": [79, 195, 116, 0, 140, 176, 73, 179],
+      "discriminator": [
+        79,
+        195,
+        116,
+        0,
+        140,
+        176,
+        73,
+        179
+      ],
       "accounts": [
         {
           "name": "question"
@@ -152,7 +188,16 @@
     },
     {
       "name": "merge_tokens",
-      "discriminator": [226, 89, 251, 121, 225, 130, 180, 14],
+      "discriminator": [
+        226,
+        89,
+        251,
+        121,
+        225,
+        130,
+        180,
+        14
+      ],
       "accounts": [
         {
           "name": "question"
@@ -192,7 +237,16 @@
     },
     {
       "name": "redeem_tokens",
-      "discriminator": [246, 98, 134, 41, 152, 33, 120, 69],
+      "discriminator": [
+        246,
+        98,
+        134,
+        41,
+        152,
+        33,
+        120,
+        69
+      ],
       "accounts": [
         {
           "name": "question"
@@ -227,7 +281,16 @@
     },
     {
       "name": "add_metadata_to_conditional_tokens",
-      "discriminator": [133, 20, 169, 231, 114, 112, 45, 1],
+      "discriminator": [
+        133,
+        20,
+        169,
+        231,
+        114,
+        112,
+        45,
+        1
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -277,41 +340,122 @@
   "accounts": [
     {
       "name": "ConditionalVault",
-      "discriminator": [63, 132, 87, 98, 36, 51, 175, 247]
+      "discriminator": [
+        63,
+        132,
+        87,
+        98,
+        36,
+        51,
+        175,
+        247
+      ]
     },
     {
       "name": "Question",
-      "discriminator": [111, 22, 150, 220, 181, 122, 118, 127]
+      "discriminator": [
+        111,
+        22,
+        150,
+        220,
+        181,
+        122,
+        118,
+        127
+      ]
     }
   ],
   "events": [
     {
       "name": "AddMetadataToConditionalTokensEvent",
-      "discriminator": [185, 201, 129, 156, 179, 177, 111, 50]
+      "discriminator": [
+        185,
+        201,
+        129,
+        156,
+        179,
+        177,
+        111,
+        50
+      ]
     },
     {
       "name": "InitializeConditionalVaultEvent",
-      "discriminator": [62, 212, 201, 253, 217, 193, 232, 182]
+      "discriminator": [
+        62,
+        212,
+        201,
+        253,
+        217,
+        193,
+        232,
+        182
+      ]
     },
     {
       "name": "InitializeQuestionEvent",
-      "discriminator": [89, 199, 242, 209, 55, 67, 183, 201]
+      "discriminator": [
+        89,
+        199,
+        242,
+        209,
+        55,
+        67,
+        183,
+        201
+      ]
     },
     {
       "name": "MergeTokensEvent",
-      "discriminator": [34, 107, 222, 189, 126, 194, 10, 90]
+      "discriminator": [
+        34,
+        107,
+        222,
+        189,
+        126,
+        194,
+        10,
+        90
+      ]
     },
     {
       "name": "RedeemTokensEvent",
-      "discriminator": [36, 211, 53, 194, 23, 5, 75, 90]
+      "discriminator": [
+        36,
+        211,
+        53,
+        194,
+        23,
+        5,
+        75,
+        90
+      ]
     },
     {
       "name": "ResolveQuestionEvent",
-      "discriminator": [0, 175, 131, 95, 5, 84, 50, 29]
+      "discriminator": [
+        0,
+        175,
+        131,
+        95,
+        5,
+        84,
+        50,
+        29
+      ]
     },
     {
       "name": "SplitTokensEvent",
-      "discriminator": [42, 188, 142, 203, 78, 60, 242, 149]
+      "discriminator": [
+        42,
+        188,
+        142,
+        203,
+        78,
+        60,
+        242,
+        149
+      ]
     }
   ],
   "errors": [
@@ -446,7 +590,10 @@
           {
             "name": "question_id",
             "type": {
-              "array": ["u8", 32]
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {
@@ -559,7 +706,10 @@
           {
             "name": "question_id",
             "type": {
-              "array": ["u8", 32]
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {
@@ -685,7 +835,10 @@
           {
             "name": "question_id",
             "type": {
-              "array": ["u8", 32]
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {

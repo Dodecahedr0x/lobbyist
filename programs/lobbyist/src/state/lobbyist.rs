@@ -9,9 +9,6 @@ pub struct Lobbyist {
     pub bump: u8,
     #[key]
     pub dao: Pubkey,
-    pub proposal: Pubkey,
-    pub pass_amm: Pubkey,
-    pub fail_amm: Pubkey,
     pub base_mint: Pubkey,
     pub quote_mint: Pubkey,
 }

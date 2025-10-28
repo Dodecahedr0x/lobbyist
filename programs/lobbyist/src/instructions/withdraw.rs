@@ -1,5 +1,6 @@
 use {
     crate::{
+        futarchy_cpi::Proposal,
         state::{Escrow, Lobbyist},
         PodU64,
     },
@@ -22,9 +23,10 @@ pub struct WithdrawArgs {
 pub struct Withdraw {
     pub depositor: Mut<Signer>,
     pub lobbyist: Account<Lobbyist>,
+    pub proposal: BorshAccount<Proposal>,
     #[constraint(
         seeded,
-        bump = escrow.data()?.bump as u8,
+        bump = escrow.data_unchecked()?.bump as u8,
         has_one = lobbyist,
     )]
     pub escrow: Mut<Account<Escrow>>,
@@ -42,9 +44,10 @@ pub struct Withdraw {
 pub fn withdraw(ctx: Withdraw) -> ProgramResult {
     msg!("Withdraw");
 
-    let bump = [ctx.escrow.data()?.bump as u8];
+    let bump = [ctx.escrow.data_unchecked()?.bump as u8];
     let seeds = Escrow::derive_signer_seeds_with_bump(
         ctx.lobbyist.as_ref().key(),
+        ctx.proposal.as_ref().key(),
         ctx.depositor.as_ref().key(),
         &bump,
     );

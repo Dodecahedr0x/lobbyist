@@ -12,8 +12,7 @@ pub use {instructions::*, state::*, utils::*};
 
 program_id!("3JceRWanoEVZSqsY9UGtxPA4XsSAnSKDTNWp2Sp3QQLu");
 
-anchor_cpi!("idls/autocrat.json");
-anchor_cpi!("idls/amm.json");
+anchor_cpi!("idls/futarchy.json");
 anchor_cpi!("idls/conditional_vault.json");
 
 handlers! {

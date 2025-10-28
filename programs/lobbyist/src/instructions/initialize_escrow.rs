@@ -1,5 +1,6 @@
 use {
     crate::{
+        futarchy_cpi::Proposal,
         state::{Escrow, Lobbyist},
         PodI16,
     },
@@ -11,7 +12,6 @@ use {
 #[derive(Debug, PartialEq, AnyBitPattern, NoUninit, Copy, Clone)]
 #[repr(C)]
 pub struct InitializeEscrowArgs {
-    pub pyth_feed_id: [u8; 32],
     pub bullish_threshold_bps: PodI16,
     pub bearish_threshold_bps: PodI16,
     pub bullish: u8,
@@ -21,11 +21,13 @@ pub struct InitializeEscrowArgs {
 #[args(InitializeEscrowArgs)]
 pub struct InitializeEscrow {
     pub depositor: Mut<Signer>,
+    pub proposal: BorshAccount<Proposal>,
     #[constraint(
         seeded,
         bump = lobbyist.data_unchecked()?.bump,
         has_one = base_mint,
         has_one = quote_mint,
+        assert = proposal.data()?.dao == lobbyist.data()?.dao,
     )]
     pub lobbyist: Account<Lobbyist>,
     #[constraint(
@@ -34,6 +36,7 @@ pub struct InitializeEscrow {
         space = Escrow::SPACE,
         seeded = [
             lobbyist.key(),
+            proposal.key(),
             depositor.key(),
         ],
         bump,
@@ -75,6 +78,7 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
     *ctx.escrow.mut_data()? = Escrow {
         bump: ctx.bumps.escrow,
         lobbyist: *ctx.lobbyist.key(),
+        proposal: *ctx.proposal.key(),
         depositor: *ctx.depositor.key(),
         active: false.into(),
         bullish: ctx.args.bullish,
@@ -84,7 +88,6 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
         pass_quote_amount: 0,
         fail_base_amount: 0,
         fail_quote_amount: 0,
-        pyth_feed_id: ctx.args.pyth_feed_id,
         bullish_threshold_bps: 0,
         bearish_threshold_bps: 0,
         _reserved: [0; 9],
