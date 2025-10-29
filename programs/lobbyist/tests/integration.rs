@@ -217,5 +217,4 @@ fn integration_test() {
     let res = assert_tx!(ctx.svm.send_transaction(tx));
     eprintln!("{}", res.logs.join("\n"));
     eprintln!("Trade executed");
-    panic!();
 }
