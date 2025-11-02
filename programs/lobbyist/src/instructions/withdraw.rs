@@ -22,19 +22,40 @@ pub struct WithdrawArgs {
 #[args(WithdrawArgs)]
 pub struct Withdraw {
     pub depositor: Mut<Signer>,
+    #[constraint(
+        has_one = base_mint,
+        has_one = quote_mint,
+    )]
     pub lobbyist: Account<Lobbyist>,
     pub proposal: BorshAccount<Proposal>,
     #[constraint(
         seeded,
         bump = escrow.data_unchecked()?.bump as u8,
         has_one = lobbyist,
+        has_one = depositor,
     )]
     pub escrow: Mut<Account<Escrow>>,
     pub base_mint: Account<Mint>,
     pub quote_mint: Account<Mint>,
+    #[constraint(
+        associated_token::mint = base_mint,
+        associated_token::authority = depositor,
+    )]
     pub user_base_ata: Mut<Account<TokenAccount>>,
+    #[constraint(
+        associated_token::mint = quote_mint,
+        associated_token::authority = depositor,
+    )]
     pub user_quote_ata: Mut<Account<TokenAccount>>,
+    #[constraint(
+        associated_token::mint = base_mint,
+        associated_token::authority = escrow,
+    )]
     pub escrow_base_ata: Mut<Account<TokenAccount>>,
+    #[constraint(
+        associated_token::mint = quote_mint,
+        associated_token::authority = escrow,
+    )]
     pub escrow_quote_ata: Mut<Account<TokenAccount>>,
     pub token_program: Program<TokenProgram>,
     pub ata_token_program: Program<AtaTokenProgram>,

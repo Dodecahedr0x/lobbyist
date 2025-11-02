@@ -26,10 +26,6 @@ pub struct InitializeLobbyist {
 pub fn initialize_lobbyist(ctx: InitializeLobbyist) -> ProgramResult {
     msg!("Initialize lobbyist");
 
-    // Check mints
-    assert_eq!(*ctx.base_mint.key(), ctx.dao.data()?.base_mint);
-    assert_eq!(*ctx.quote_mint.key(), ctx.dao.data()?.quote_mint);
-
     *ctx.lobbyist.mut_data()? = Lobbyist {
         bump: ctx.bumps.lobbyist,
         dao: *ctx.dao.key(),

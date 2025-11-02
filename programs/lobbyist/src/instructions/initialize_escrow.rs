@@ -51,7 +51,6 @@ pub struct InitializeEscrow {
     pub system_program: Program<System>,
 }
 
-/// Creates a new escrow for a given lobbyist
 pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
     msg!("Initialize escrow");
 
