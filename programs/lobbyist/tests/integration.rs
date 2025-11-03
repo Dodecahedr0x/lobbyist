@@ -21,49 +21,20 @@ fn integration_test() {
     let initial_supply = 1_000_000_000;
     let mut ctx = TestContext::new(initial_supply);
 
-    let lobbyist_pda =
-        Pubkey::find_program_address(&Lobbyist::derive(&ctx.dao.to_bytes()), &lobbyist::ID.into())
-            .0;
     let escrow_pda = Pubkey::find_program_address(
-        &Escrow::derive(
-            &lobbyist_pda.to_bytes(),
-            &ctx.proposal.to_bytes(),
-            &ctx.signer.pubkey().to_bytes(),
-        ),
+        &Escrow::derive(&ctx.proposal.to_bytes(), &ctx.signer.pubkey().to_bytes()),
         &lobbyist::ID.into(),
     )
     .0;
-
-    let lobbyist_ix = InitializeLobbyistInstruction {
-        ctx: InitializeLobbyistContext {
-            creator: ctx.signer.pubkey(),
-            lobbyist: lobbyist_pda,
-            dao: ctx.dao,
-            base_mint: ctx.base_mint,
-            quote_mint: ctx.quote_mint,
-            system_program: system_program::id(),
-        },
-    }
-    .into_instruction();
-
-    let tx = Transaction::new_signed_with_payer(
-        &[lobbyist_ix],
-        Some(&ctx.signer.pubkey()),
-        &[&ctx.signer],
-        ctx.svm.latest_blockhash(),
-    );
-    assert_tx!(ctx.svm.send_transaction(tx));
-    eprintln!("Lobbyist initialized");
 
     let escrow_base_ata = get_associated_token_address(&escrow_pda, &ctx.base_mint);
     let escrow_quote_ata = get_associated_token_address(&escrow_pda, &ctx.quote_mint);
     let escrow_ix = InitializeEscrowInstruction {
         ctx: InitializeEscrowContext {
             depositor: ctx.signer.pubkey(),
-            // dao: ctx.dao,
             proposal: ctx.proposal,
-            lobbyist: lobbyist_pda,
             escrow: escrow_pda,
+            dao: ctx.dao,
             base_mint: ctx.base_mint,
             quote_mint: ctx.quote_mint,
             escrow_base_ata,
@@ -118,7 +89,6 @@ fn integration_test() {
     let deposit_ix = DepositInstruction {
         ctx: DepositContext {
             depositor: ctx.signer.pubkey(),
-            lobbyist: lobbyist_pda,
             escrow: escrow_pda,
             base_mint: ctx.base_mint,
             quote_mint: ctx.quote_mint,
@@ -153,7 +123,6 @@ fn integration_test() {
     let withdraw_ix = WithdrawInstruction {
         ctx: WithdrawContext {
             depositor: ctx.signer.pubkey(),
-            lobbyist: lobbyist_pda,
             proposal: ctx.proposal,
             escrow: escrow_pda,
             base_mint: ctx.base_mint,
@@ -188,9 +157,10 @@ fn integration_test() {
     assert_eq!(escrow.quote_amount, initial_supply / 4);
 
     let mut trade_ix = TradeInstruction {
-        _ctx: TradeContext {
+        ctx: TradeContext {
             depositor: ctx.signer.pubkey(),
-            lobbyist: lobbyist_pda,
+            dao: ctx.dao,
+            proposal: ctx.proposal,
             escrow: escrow_pda,
             base_mint: ctx.base_mint,
             quote_mint: ctx.quote_mint,

@@ -1,5 +1,8 @@
 use {
-    crate::state::{Escrow, Lobbyist},
+    crate::{
+        futarchy_cpi::{Dao, Pool, PoolState, Proposal},
+        state::Escrow,
+    },
     typhoon::prelude::*,
     typhoon_token::{AtaTokenProgram, Mint, TokenProgram},
 };
@@ -9,18 +12,18 @@ pub const MAXIMUM_AGE: u64 = 10; // 10 seconds
 #[context]
 pub struct Trade {
     pub depositor: Mut<Signer>,
+    pub dao: BorshAccount<Dao>,
+    #[constraint(
+        has_one = dao,
+    )]
+    pub proposal: BorshAccount<Proposal>,
     #[constraint(
         seeded,
-        bump = lobbyist.data_unchecked()?.bump as u8,
+        has_one = depositor,
+        has_one = proposal,
         has_one = base_mint,
         has_one = quote_mint,
-    )]
-    pub lobbyist: Account<Lobbyist>,
-    #[constraint(
-        seeded,
-        has_one = lobbyist,
-        has_one = depositor,
-        bump = escrow.data_unchecked()?.bump as u8,
+        bump = escrow.data_unchecked()?.bump,
     )]
     pub escrow: Mut<Account<Escrow>>,
     pub base_mint: Account<Mint>,
@@ -33,8 +36,35 @@ pub struct Trade {
 }
 
 /// Creates a new escrow for a given lobbyist
-pub fn trade(_ctx: Trade, _remaining_accounts: Remaining) -> ProgramResult {
+pub fn trade(ctx: Trade, _remaining_accounts: Remaining) -> ProgramResult {
     msg!("Trade");
 
-    Ok(())
+    match &ctx.dao.data()?.amm.state {
+        PoolState::Spot { spot } => {
+            let spot_twap = get_twap(&spot)?;
+            msg!(format!("{:?}", spot_twap).as_str());
+        }
+        PoolState::Futarchy { spot, pass, fail } => {
+            let spot_twap = get_twap(&spot)?;
+            msg!(format!("{:?}", spot_twap).as_str());
+            let pass_twap = get_twap(&pass)?;
+            msg!(format!("{:?}", pass_twap).as_str());
+            let fail_twap = get_twap(&fail)?;
+            msg!(format!("{:?}", fail_twap).as_str());
+        }
+    }
+
+    Err(ProgramError::InvalidArgument.into())
+}
+
+fn get_twap(pool: &Pool) -> ProgramResult<u128> {
+    let start_timestamp = pool.oracle.created_at_timestamp + pool.oracle.start_delay_seconds as i64;
+
+    // require_gt!(self.oracle.last_updated_timestamp, start_timestamp);
+    let seconds_passed = (pool.oracle.last_updated_timestamp - start_timestamp) as u128;
+
+    // require_neq!(seconds_passed, 0);
+    // require_neq!(state.oracle.aggregator, 0);
+
+    Ok(pool.oracle.aggregator / seconds_passed)
 }

@@ -1,8 +1,5 @@
 use {
-    crate::{
-        state::{Escrow, Lobbyist},
-        utils::PodU64,
-    },
+    crate::{state::Escrow, utils::PodU64},
     bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
     typhoon_token::{spl_instructions::TransferChecked, Mint, TokenAccount, TokenProgram},
@@ -20,15 +17,11 @@ pub struct DepositArgs {
 pub struct Deposit {
     pub depositor: Mut<Signer>,
     #[constraint(
+        seeded,
+        bump = escrow.data_unchecked()?.bump,
+        has_one = depositor,
         has_one = base_mint,
         has_one = quote_mint,
-    )]
-    pub lobbyist: Account<Lobbyist>,
-    #[constraint(
-        seeded,
-        bump = escrow.data()?.bump as u8,
-        has_one = lobbyist,
-        has_one = depositor,
     )]
     pub escrow: Mut<Account<Escrow>>,
     pub base_mint: Account<Mint>,
@@ -80,8 +73,9 @@ pub fn deposit(ctx: Deposit) -> ProgramResult {
     }
     .invoke()?;
 
-    ctx.escrow.mut_data()?.base_amount += ctx.args.base_amount;
-    ctx.escrow.mut_data()?.quote_amount += ctx.args.quote_amount;
+    let mut escrow = ctx.escrow.mut_data()?;
+    escrow.base_amount += ctx.args.base_amount;
+    escrow.quote_amount += ctx.args.quote_amount;
 
     Ok(())
 }

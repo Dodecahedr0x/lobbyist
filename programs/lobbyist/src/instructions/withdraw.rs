@@ -1,9 +1,5 @@
 use {
-    crate::{
-        futarchy_cpi::Proposal,
-        state::{Escrow, Lobbyist},
-        PodU64,
-    },
+    crate::{futarchy_cpi::Proposal, state::Escrow, PodU64},
     bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
     typhoon_token::{
@@ -22,17 +18,13 @@ pub struct WithdrawArgs {
 #[args(WithdrawArgs)]
 pub struct Withdraw {
     pub depositor: Mut<Signer>,
-    #[constraint(
-        has_one = base_mint,
-        has_one = quote_mint,
-    )]
-    pub lobbyist: Account<Lobbyist>,
     pub proposal: BorshAccount<Proposal>,
     #[constraint(
         seeded,
-        bump = escrow.data_unchecked()?.bump as u8,
-        has_one = lobbyist,
+        bump = escrow.data_unchecked()?.bump,
         has_one = depositor,
+        has_one = base_mint,
+        has_one = quote_mint,
     )]
     pub escrow: Mut<Account<Escrow>>,
     pub base_mint: Account<Mint>,
@@ -67,7 +59,6 @@ pub fn withdraw(ctx: Withdraw) -> ProgramResult {
 
     let bump = [ctx.escrow.data_unchecked()?.bump as u8];
     let seeds = Escrow::derive_signer_seeds_with_bump(
-        ctx.lobbyist.as_ref().key(),
         ctx.proposal.as_ref().key(),
         ctx.depositor.as_ref().key(),
         &bump,

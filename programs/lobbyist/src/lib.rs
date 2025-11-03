@@ -16,7 +16,6 @@ anchor_cpi!("idls/futarchy.json");
 anchor_cpi!("idls/conditional_vault.json");
 
 handlers! {
-    initialize_lobbyist,
     initialize_escrow,
     deposit,
     withdraw,

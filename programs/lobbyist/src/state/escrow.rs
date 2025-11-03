@@ -25,15 +25,18 @@ pub enum EscrowStatus {
 #[derive(NoUninit, AnyBitPattern, AccountState, Copy, Clone, Debug)]
 #[repr(C)]
 pub struct Escrow {
-    /// The lobbyist than can use this escrow
-    #[key]
-    pub lobbyist: Pubkey,
     /// The proposal the escrow is associated with
     #[key]
     pub proposal: Pubkey,
     /// The owner of the escrow
     #[key]
     pub depositor: Pubkey,
+    /// The DAO the proposal is associated with
+    pub dao: Pubkey,
+    /// The base mint of the DAO
+    pub base_mint: Pubkey,
+    /// The quote mint of the DAO
+    pub quote_mint: Pubkey,
     /// Amount of base token owned by the escrow
     pub base_amount: u64,
     /// Amount of quote token owned by the escrow

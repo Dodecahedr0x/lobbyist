@@ -1,7 +1,7 @@
 use {
     crate::{
-        futarchy_cpi::Proposal,
-        state::{Escrow, Lobbyist},
+        futarchy_cpi::{Dao, Proposal},
+        state::Escrow,
         PodI16,
     },
     bytemuck::{AnyBitPattern, NoUninit},
@@ -21,23 +21,18 @@ pub struct InitializeEscrowArgs {
 #[args(InitializeEscrowArgs)]
 pub struct InitializeEscrow {
     pub depositor: Mut<Signer>,
-    pub proposal: BorshAccount<Proposal>,
+    pub dao: BorshAccount<Dao>,
     #[constraint(
-        seeded,
-        bump = lobbyist.data_unchecked()?.bump,
-        has_one = base_mint,
-        has_one = quote_mint,
-        assert = proposal.data()?.dao == lobbyist.data()?.dao,
+        has_one = dao,
     )]
-    pub lobbyist: Account<Lobbyist>,
+    pub proposal: BorshAccount<Proposal>,
     #[constraint(
         init,
         payer = depositor,
         space = Escrow::SPACE,
         seeded = [
-            lobbyist.key(),
-            proposal.key(),
             depositor.key(),
+            proposal.key(),
         ],
         bump,
     )]
@@ -76,9 +71,11 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
 
     *ctx.escrow.mut_data()? = Escrow {
         bump: ctx.bumps.escrow,
-        lobbyist: *ctx.lobbyist.key(),
         proposal: *ctx.proposal.key(),
         depositor: *ctx.depositor.key(),
+        dao: *ctx.dao.key(),
+        base_mint: *ctx.base_mint.key(),
+        quote_mint: *ctx.quote_mint.key(),
         active: false.into(),
         bullish: ctx.args.bullish,
         base_amount: 0,
