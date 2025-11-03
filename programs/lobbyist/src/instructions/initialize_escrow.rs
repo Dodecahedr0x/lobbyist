@@ -21,6 +21,10 @@ pub struct InitializeEscrowArgs {
 #[args(InitializeEscrowArgs)]
 pub struct InitializeEscrow {
     pub depositor: Mut<Signer>,
+    #[constraint(
+        has_one = base_mint,
+        has_one = quote_mint,
+    )]
     pub dao: BorshAccount<Dao>,
     #[constraint(
         has_one = dao,
@@ -74,10 +78,10 @@ pub fn initialize_escrow(ctx: InitializeEscrow) -> ProgramResult {
         proposal: *ctx.proposal.key(),
         depositor: *ctx.depositor.key(),
         dao: *ctx.dao.key(),
-        base_mint: *ctx.base_mint.key(),
-        quote_mint: *ctx.quote_mint.key(),
         active: false.into(),
         bullish: ctx.args.bullish,
+        base_mint: *ctx.base_mint.key(),
+        quote_mint: *ctx.quote_mint.key(),
         base_amount: 0,
         quote_amount: 0,
         pass_base_amount: 0,
