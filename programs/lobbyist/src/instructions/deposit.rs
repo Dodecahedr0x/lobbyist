@@ -1,5 +1,5 @@
 use {
-    crate::{state::Escrow, utils::PodU64},
+    crate::{errors::LobbyistError, state::Escrow, utils::PodU64},
     bytemuck::{AnyBitPattern, NoUninit},
     typhoon::prelude::*,
     typhoon_token::{spl_instructions::TransferChecked, Mint, TokenAccount, TokenProgram},
@@ -19,9 +19,9 @@ pub struct Deposit {
     #[constraint(
         seeded,
         bump = escrow.data_unchecked()?.bump,
-        has_one = depositor,
-        has_one = base_mint,
-        has_one = quote_mint,
+        has_one = depositor @ LobbyistError::InvalidDepositor,
+        has_one = base_mint @ LobbyistError::InvalidBaseMint,
+        has_one = quote_mint @ LobbyistError::InvalidQuoteMint,
     )]
     pub escrow: Mut<Account<Escrow>>,
     pub base_mint: Account<Mint>,

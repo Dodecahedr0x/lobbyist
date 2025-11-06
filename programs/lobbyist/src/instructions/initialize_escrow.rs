@@ -1,5 +1,6 @@
 use {
     crate::{
+        errors::LobbyistError,
         futarchy_cpi::{Dao, Proposal},
         state::Escrow,
         PodI16,
@@ -21,13 +22,15 @@ pub struct InitializeEscrowArgs {
 #[args(InitializeEscrowArgs)]
 pub struct InitializeEscrow {
     pub depositor: Mut<Signer>,
+    /// Account is too large to be deserialized in the context
+    // pub dao: UncheckedAccount,
     #[constraint(
-        has_one = base_mint,
-        has_one = quote_mint,
+        has_one = base_mint @ LobbyistError::InvalidBaseMint,
+        has_one = quote_mint @ LobbyistError::InvalidQuoteMint,
     )]
     pub dao: BorshAccount<Dao>,
     #[constraint(
-        has_one = dao,
+        has_one = dao @ LobbyistError::InvalidDao,
     )]
     pub proposal: BorshAccount<Proposal>,
     #[constraint(

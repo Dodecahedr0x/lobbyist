@@ -1,9 +1,14 @@
 mod common;
 
 use {
+    crate::common::conditional_swap,
     common::TestContext,
-    lobbyist::*,
+    lobbyist::{
+        futarchy_cpi::{ConditionalSwapParams, Market, SwapType},
+        *,
+    },
     solana_instruction::AccountMeta,
+    solana_program::clock::Clock,
     solana_pubkey::Pubkey,
     solana_sdk_ids::system_program,
     solana_signer::Signer,
@@ -11,7 +16,6 @@ use {
     spl_associated_token_account::get_associated_token_address,
     typhoon::lib::RefFromBytes,
     typhoon_instruction_builder::generate_instructions_client,
-    typhoon_token::{Mint, TokenAccount},
 };
 
 generate_instructions_client!(lobbyist);
@@ -22,7 +26,7 @@ fn integration_test() {
     let mut ctx = TestContext::new(initial_supply);
 
     let escrow_pda = Pubkey::find_program_address(
-        &Escrow::derive(&ctx.proposal.to_bytes(), &ctx.signer.pubkey().to_bytes()),
+        &Escrow::derive(&ctx.signer.pubkey().to_bytes(), &ctx.proposal.to_bytes()),
         &lobbyist::ID.into(),
     )
     .0;
@@ -62,30 +66,6 @@ fn integration_test() {
 
     let user_base_ata = get_associated_token_address(&ctx.signer.pubkey(), &ctx.base_mint);
     let user_quote_ata = get_associated_token_address(&ctx.signer.pubkey(), &ctx.quote_mint);
-    eprintln!(
-        "quote mint: {:?}",
-        Mint::read(&ctx.svm.get_account(&ctx.quote_mint).unwrap().data)
-            .unwrap()
-            .supply()
-    );
-    eprintln!(
-        "base mint: {:?}",
-        Mint::read(&ctx.svm.get_account(&ctx.base_mint).unwrap().data)
-            .unwrap()
-            .supply()
-    );
-    eprintln!(
-        "user_quote_ata: {:?}",
-        TokenAccount::read(&ctx.svm.get_account(&user_quote_ata).unwrap().data)
-            .unwrap()
-            .amount()
-    );
-    eprintln!(
-        "user_base_ata: {:?}",
-        TokenAccount::read(&ctx.svm.get_account(&user_base_ata).unwrap().data)
-            .unwrap()
-            .amount()
-    );
     let deposit_ix = DepositInstruction {
         ctx: DepositContext {
             depositor: ctx.signer.pubkey(),
@@ -155,6 +135,38 @@ fn integration_test() {
     let escrow = Escrow::read(&escrow_account.data).unwrap();
     assert_eq!(escrow.base_amount, initial_supply / 4);
     assert_eq!(escrow.quote_amount, initial_supply / 4);
+
+    eprintln!("Time: {}", ctx.svm.get_sysvar::<Clock>().unix_timestamp);
+    ctx.svm.set_sysvar::<Clock>(&Clock {
+        unix_timestamp: 88000,
+        epoch_start_timestamp: 100,
+        epoch: 100,
+        leader_schedule_epoch: 100,
+        slot: 100,
+    });
+    eprintln!("Time: {}", ctx.svm.get_sysvar::<Clock>().unix_timestamp);
+
+    conditional_swap(
+        &mut ctx.svm,
+        &ctx.signer,
+        ctx.dao,
+        ctx.proposal,
+        ctx.question,
+        ctx.base_mint,
+        ctx.quote_mint,
+        ctx.base_vault_pda,
+        ctx.quote_vault_pda,
+        ctx.pass_base_mint,
+        ctx.pass_quote_mint,
+        ctx.fail_base_mint,
+        ctx.fail_quote_mint,
+        ConditionalSwapParams {
+            swap_type: SwapType::Buy,
+            input_amount: initial_supply / 100,
+            min_output_amount: 0,
+            market: Market::Pass,
+        },
+    );
 
     let mut trade_ix = TradeInstruction {
         ctx: TradeContext {

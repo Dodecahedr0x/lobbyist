@@ -2,12 +2,15 @@ use {
     crate::{
         assert_tx,
         common::{
-            squads_multisig_pda, squads_spending_limit_pda, squads_vault_pda,
-            SQUADS_PROGRAM_CONFIG, SQUADS_PROGRAM_CONFIG_TREASURY, SQUADS_PROGRAM_ID,
+            conditional_vault_event_authority_pda, squads_multisig_pda, squads_spending_limit_pda,
+            squads_vault_pda, CONDITIONAL_VAULT_PROGRAM_ID, SQUADS_PROGRAM_CONFIG,
+            SQUADS_PROGRAM_CONFIG_TREASURY, SQUADS_PROGRAM_ID,
         },
     },
     litesvm::LiteSVM,
-    lobbyist::futarchy_cpi::{InitializeDaoParams, ProvideLiquidityParams},
+    lobbyist::futarchy_cpi::{
+        ConditionalSwapParams, InitializeDaoParams, Market, ProvideLiquidityParams, SwapType,
+    },
     solana_instruction::{AccountMeta, Instruction},
     solana_keypair::Keypair,
     solana_program::system_program,
@@ -22,7 +25,9 @@ pub const FUTARCHY_PROGRAM_ID: Pubkey =
 
 pub const CREATE_DAO_DISCRIMINATOR: &[u8] = &[128, 226, 96, 90, 39, 56, 24, 196];
 pub const CREATE_PROPOSAL_DISCRIMINATOR: &[u8] = &[50, 73, 156, 98, 129, 149, 21, 158];
+pub const LAUNCH_PROPOSAL_DISCRIMINATOR: &[u8] = &[16, 211, 189, 119, 245, 72, 0, 229];
 pub const PROVIDE_LIQUIDITY_DISCRIMINATOR: &[u8] = &[40, 110, 107, 116, 174, 127, 97, 204];
+pub const CONDITIONAL_SWAP_DISCRIMINATOR: &[u8] = &[194, 136, 220, 89, 242, 169, 130, 157];
 
 pub const MIN_LP_TOKENS_LOCKED: u64 = 100;
 
@@ -169,6 +174,60 @@ pub fn create_proposal(
     proposal
 }
 
+pub fn launch_proposal(
+    svm: &mut LiteSVM,
+    signer: &Keypair,
+    dao_pda: Pubkey,
+    proposal: Pubkey,
+    base_vault: Pubkey,
+    quote_vault: Pubkey,
+    pass_base_mint: Pubkey,
+    pass_quote_mint: Pubkey,
+    fail_base_mint: Pubkey,
+    fail_quote_mint: Pubkey,
+) -> Pubkey {
+    let amm_pass_base_vault = get_associated_token_address(&dao_pda, &pass_base_mint);
+    let amm_pass_quote_vault = get_associated_token_address(&dao_pda, &pass_quote_mint);
+    let amm_fail_base_vault = get_associated_token_address(&dao_pda, &fail_base_mint);
+    let amm_fail_quote_vault = get_associated_token_address(&dao_pda, &fail_quote_mint);
+    let event_authority_pda = futarchy_event_authority_pda();
+    let create_proposal_ix_data = LAUNCH_PROPOSAL_DISCRIMINATOR.to_vec();
+    let create_proposal_ix = Instruction::new_with_bytes(
+        FUTARCHY_PROGRAM_ID,
+        &create_proposal_ix_data,
+        vec![
+            AccountMeta::new(proposal, false),
+            AccountMeta::new_readonly(base_vault, false),
+            AccountMeta::new_readonly(quote_vault, false),
+            AccountMeta::new_readonly(pass_base_mint, false),
+            AccountMeta::new_readonly(pass_quote_mint, false),
+            AccountMeta::new_readonly(fail_base_mint, false),
+            AccountMeta::new_readonly(fail_quote_mint, false),
+            AccountMeta::new(dao_pda, false),
+            AccountMeta::new(signer.pubkey(), true),
+            AccountMeta::new(amm_pass_base_vault, false),
+            AccountMeta::new(amm_pass_quote_vault, false),
+            AccountMeta::new(amm_fail_base_vault, false),
+            AccountMeta::new(amm_fail_quote_vault, false),
+            AccountMeta::new_readonly(system_program::ID, false),
+            AccountMeta::new_readonly(spl_token::ID, false),
+            AccountMeta::new_readonly(spl_associated_token_account::ID, false),
+            AccountMeta::new_readonly(event_authority_pda, false),
+            AccountMeta::new_readonly(FUTARCHY_PROGRAM_ID, false),
+        ],
+    );
+
+    let tx = Transaction::new_signed_with_payer(
+        &[create_proposal_ix],
+        Some(&signer.pubkey()),
+        &[&signer],
+        svm.latest_blockhash(),
+    );
+    assert_tx!(svm.send_transaction(tx));
+
+    proposal
+}
+
 pub fn provide_liquidity(
     svm: &mut LiteSVM,
     signer: &Keypair,
@@ -215,12 +274,94 @@ pub fn provide_liquidity(
     assert_tx!(svm.send_transaction(tx));
 }
 
-//     #[account(
-//         init_if_needed,
-//         payer = payer,
-//         seeds = [b"amm_position", dao.key().as_ref(), params.position_authority.key().as_ref()],
-//         bump,
-//         space = 8 + AmmPosition::INIT_SPACE,
-//     )]
-//     pub amm_position: Account<'info, AmmPosition>,
-//     pub token_program: Program<'info, Token>,
+pub fn conditional_swap(
+    svm: &mut LiteSVM,
+    trader: &Keypair,
+    dao_pda: Pubkey,
+    proposal: Pubkey,
+    question: Pubkey,
+    base_mint: Pubkey,
+    quote_mint: Pubkey,
+    base_vault: Pubkey,
+    quote_vault: Pubkey,
+    pass_base_mint: Pubkey,
+    pass_quote_mint: Pubkey,
+    fail_base_mint: Pubkey,
+    fail_quote_mint: Pubkey,
+    params: ConditionalSwapParams,
+) {
+    let amm_base_vault = get_associated_token_address(&dao_pda, &base_mint);
+    let amm_quote_vault = get_associated_token_address(&dao_pda, &quote_mint);
+    let amm_pass_base_vault = get_associated_token_address(&dao_pda, &pass_base_mint);
+    let amm_pass_quote_vault = get_associated_token_address(&dao_pda, &pass_quote_mint);
+    let amm_fail_base_vault = get_associated_token_address(&dao_pda, &fail_base_mint);
+    let amm_fail_quote_vault = get_associated_token_address(&dao_pda, &fail_quote_mint);
+
+    let (trader_input_account, trader_output_account) = match (&params.swap_type, &params.market) {
+        (SwapType::Buy, Market::Pass) => (
+            get_associated_token_address(&trader.pubkey(), &pass_quote_mint),
+            get_associated_token_address(&trader.pubkey(), &pass_base_mint),
+        ),
+        (SwapType::Buy, Market::Fail) => (
+            get_associated_token_address(&trader.pubkey(), &pass_base_mint),
+            get_associated_token_address(&trader.pubkey(), &pass_quote_mint),
+        ),
+        (SwapType::Sell, Market::Pass) => (
+            get_associated_token_address(&trader.pubkey(), &fail_base_mint),
+            get_associated_token_address(&trader.pubkey(), &fail_quote_mint),
+        ),
+        (SwapType::Sell, Market::Fail) => (
+            get_associated_token_address(&trader.pubkey(), &fail_quote_mint),
+            get_associated_token_address(&trader.pubkey(), &fail_base_mint),
+        ),
+        (_, Market::Spot) => unreachable!(),
+    };
+
+    let base_vault_underlying_token_account = get_associated_token_address(&base_vault, &base_mint);
+    let quote_vault_underlying_token_account =
+        get_associated_token_address(&quote_vault, &quote_mint);
+    let vault_event_authority = conditional_vault_event_authority_pda();
+    let event_authority_pda = futarchy_event_authority_pda();
+
+    let mut conditional_swap_ix_data = CONDITIONAL_SWAP_DISCRIMINATOR.to_vec();
+    borsh::to_writer(&mut conditional_swap_ix_data, &params).unwrap();
+    let conditional_swap_ix = Instruction::new_with_bytes(
+        FUTARCHY_PROGRAM_ID,
+        &conditional_swap_ix_data,
+        vec![
+            AccountMeta::new(dao_pda, false),
+            AccountMeta::new(amm_base_vault, false),
+            AccountMeta::new(amm_quote_vault, false),
+            AccountMeta::new_readonly(proposal, false),
+            AccountMeta::new(amm_pass_base_vault, false),
+            AccountMeta::new(amm_pass_quote_vault, false),
+            AccountMeta::new(amm_fail_base_vault, false),
+            AccountMeta::new(amm_fail_quote_vault, false),
+            AccountMeta::new_readonly(trader.pubkey(), true),
+            AccountMeta::new(trader_input_account, false),
+            AccountMeta::new(trader_output_account, false),
+            AccountMeta::new(base_vault, false),
+            AccountMeta::new(base_vault_underlying_token_account, false),
+            AccountMeta::new(quote_vault, false),
+            AccountMeta::new(quote_vault_underlying_token_account, false),
+            AccountMeta::new(pass_base_mint, false),
+            AccountMeta::new(fail_base_mint, false),
+            AccountMeta::new(pass_quote_mint, false),
+            AccountMeta::new(fail_quote_mint, false),
+            AccountMeta::new_readonly(CONDITIONAL_VAULT_PROGRAM_ID, false),
+            AccountMeta::new_readonly(vault_event_authority, false),
+            AccountMeta::new_readonly(question, false),
+            AccountMeta::new_readonly(spl_token::ID, false),
+            AccountMeta::new_readonly(event_authority_pda, false),
+            AccountMeta::new_readonly(FUTARCHY_PROGRAM_ID, false),
+        ],
+    );
+
+    let tx = Transaction::new_signed_with_payer(
+        &[conditional_swap_ix],
+        Some(&trader.pubkey()),
+        &[&trader],
+        svm.latest_blockhash(),
+    );
+    assert_tx!(svm.send_transaction(tx));
+}

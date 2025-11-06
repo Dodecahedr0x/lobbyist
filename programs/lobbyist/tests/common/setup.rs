@@ -1,7 +1,7 @@
 use {
     crate::common::{
         create_conditional_vault, create_dao, create_proposal, create_question,
-        create_squads_proposal, create_token, provide_liquidity, split_tokens,
+        create_squads_proposal, create_token, launch_proposal, provide_liquidity, split_tokens,
         squads::{SQUADS_PROGRAM_CONFIG, SQUADS_PROGRAM_ID},
         CONDITIONAL_VAULT_PROGRAM_ID, FUTARCHY_PROGRAM_ID,
     },
@@ -34,9 +34,16 @@ pub struct TestContext {
     pub svm: LiteSVM,
     pub signer: Keypair,
     pub proposal: Pubkey,
+    pub question: Pubkey,
     pub base_mint: Pubkey,
     pub quote_mint: Pubkey,
     pub dao: Pubkey,
+    pub base_vault_pda: Pubkey,
+    pub quote_vault_pda: Pubkey,
+    pub pass_base_mint: Pubkey,
+    pub pass_quote_mint: Pubkey,
+    pub fail_base_mint: Pubkey,
+    pub fail_quote_mint: Pubkey,
 }
 
 impl TestContext {
@@ -86,30 +93,30 @@ impl TestContext {
 
         let question_pda = create_question(&mut svm, &signer, squads_proposal_pda);
 
-        let (usdc_vault_pda, fail_usdc_mint, pass_usdc_mint) =
-            create_conditional_vault(&mut svm, &signer, question_pda, quote_mint);
-        let (token_vault_pda, fail_token_mint, pass_token_mint) =
+        let (base_vault_pda, fail_base_mint, pass_base_mint) =
             create_conditional_vault(&mut svm, &signer, question_pda, base_mint);
+        let (quote_vault_pda, fail_quote_mint, pass_quote_mint) =
+            create_conditional_vault(&mut svm, &signer, question_pda, quote_mint);
 
         let (_fail_token_ata, _pass_token_ata) = split_tokens(
             &mut svm,
             &signer,
             question_pda,
-            token_vault_pda,
+            base_vault_pda,
             base_mint,
             initial_supply / 4,
-            fail_token_mint,
-            pass_token_mint,
+            fail_base_mint,
+            pass_base_mint,
         );
         let (_fail_usdc_ata, _pass_usdc_ata) = split_tokens(
             &mut svm,
             &signer,
             question_pda,
-            usdc_vault_pda,
+            quote_vault_pda,
             quote_mint,
             initial_supply / 4,
-            fail_usdc_mint,
-            pass_usdc_mint,
+            fail_quote_mint,
+            pass_quote_mint,
         );
 
         provide_liquidity(
@@ -132,8 +139,21 @@ impl TestContext {
             dao_pda,
             question_pda,
             squads_proposal_pda,
-            token_vault_pda,
-            usdc_vault_pda,
+            base_vault_pda,
+            quote_vault_pda,
+        );
+
+        launch_proposal(
+            &mut svm,
+            &signer,
+            dao_pda,
+            proposal_pda,
+            base_vault_pda,
+            quote_vault_pda,
+            pass_base_mint,
+            pass_quote_mint,
+            fail_base_mint,
+            fail_quote_mint,
         );
 
         TestContext {
@@ -141,8 +161,15 @@ impl TestContext {
             signer,
             dao: dao_pda,
             proposal: proposal_pda,
+            question: question_pda,
             base_mint,
             quote_mint,
+            base_vault_pda,
+            quote_vault_pda,
+            pass_base_mint,
+            pass_quote_mint,
+            fail_base_mint,
+            fail_quote_mint,
         }
     }
 }

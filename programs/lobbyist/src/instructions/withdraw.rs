@@ -59,8 +59,8 @@ pub fn withdraw(ctx: Withdraw) -> ProgramResult {
 
     let bump = [ctx.escrow.data_unchecked()?.bump as u8];
     let seeds = Escrow::derive_signer_seeds_with_bump(
-        ctx.proposal.as_ref().key(),
         ctx.depositor.as_ref().key(),
+        ctx.proposal.as_ref().key(),
         &bump,
     );
 
